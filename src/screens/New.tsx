@@ -1,9 +1,11 @@
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { BackButton } from "../components/BackButton";
 import { Checkbox } from "../components/Checkbox";
 import { useState } from "react";
 import colors from "tailwindcss/colors";
 import { Feather } from "@expo/vector-icons";
+import { api } from "../lib/axios";
+import { useNavigation } from "@react-navigation/native";
 
 const allWeekDays = [
   "Domingo",
@@ -16,8 +18,9 @@ const allWeekDays = [
 ];
 
 export function New() {
-
+  const { navigate } = useNavigation();
   const [weekDays, setWeekDays] = useState<number[]>([]);
+  const [newHabitTitle, setNewHabitTitle] = useState<string>('');
 
   function handleToggleWeekDay(weekDayIndex: number) {
     if (weekDays.includes(weekDayIndex)) {
@@ -25,7 +28,39 @@ export function New() {
     } else {
       setWeekDays(prevState => [...prevState, weekDayIndex]);
     }
-  }
+  };
+
+  async function handleCreateNewHabit() {
+    try {
+      if (!newHabitTitle || newHabitTitle.trim() === '') {
+        return Alert.alert('Ops', 'Informe o título do hábito.');
+      }
+
+      if (weekDays.length === 0) {
+        return Alert.alert('Ops', 'Informe a recorrência do hábito.');
+      }
+
+      const newHabit = {
+        title: newHabitTitle,
+        weekDays,
+      }
+      // console.log(newHabit);
+
+      await api.post('/habits', newHabit);
+      setWeekDays([])
+      setNewHabitTitle('')
+      Alert.alert('Novo Hábito', 'Hábito criado com sucesso.', [{
+        text: 'OK',
+        onPress: () => navigate('home')
+      }]);
+    } catch (error) {
+      console.log(error)
+      Alert.alert('Ops', 'Não foi possível criar o hábito.');
+    }
+
+
+
+  };
 
 
   return (
@@ -48,10 +83,14 @@ export function New() {
           focus:border-2 focus:border-green-600"
           placeholder="Ex: Ler 1 capítulo de um livro por dia, beber água"
           placeholderTextColor={colors.gray[400]}
+          onChangeText={setNewHabitTitle}
+          value={newHabitTitle}
         />
+
         <Text className="font-semibold mt-4 mb-3 text-white text-base">
           Qual a recorrência?
         </Text>
+
         {
           allWeekDays.map((weekday, index) => (
             <Checkbox
@@ -67,6 +106,7 @@ export function New() {
           activeOpacity={0.7}
           className="w-full h-14 flex flex-row items-center justify-center bg-green-600
           rounded-md mt-6"
+          onPress={handleCreateNewHabit}
         >
           <Feather name="check" size={20} color={colors.white} />
           <Text className="font-semibold text-white text-base ml-2">Confirmar</Text>
